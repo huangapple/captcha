@@ -43,7 +43,7 @@ func Server(imgWidth, imgHeight int) http.Handler {
 	return &captchaHandler{imgWidth, imgHeight}
 }
 
-func (h *captchaHandler) serve(w http.ResponseWriter, r *http.Request, id, ext, lang string, download bool) error {
+func (h *captchaHandler) Serve(w http.ResponseWriter, r *http.Request, id, ext, lang string, download bool) error {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -80,7 +80,7 @@ func (h *captchaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := strings.ToLower(r.FormValue("lang"))
 	download := path.Base(dir) == "download"
-	if h.serve(w, r, id, ext, lang, download) == ErrNotFound {
+	if h.Serve(w, r, id, ext, lang, download) == ErrNotFound {
 		http.NotFound(w, r)
 	}
 	// Ignore other errors.

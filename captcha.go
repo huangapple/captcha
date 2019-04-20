@@ -88,6 +88,20 @@ func NewLen(length int) (id string) {
 	return
 }
 
+func NewID() (id string) {
+	return randomId()
+}
+
+func LoadID(id string) {
+	globalStore.Set(id, RandomDigits(DefaultLen))
+}
+
+func HasID(id string) bool {
+	old := globalStore.Get(id, false)
+
+	return old != nil
+}
+
 // Reload generates and remembers new digits for the given captcha id.  This
 // function returns false if there is no captcha with the given id.
 //
@@ -131,11 +145,11 @@ func WriteAudio(w io.Writer, id string, lang string) error {
 //
 // The function deletes the captcha with the given id from the internal
 // storage, so that the same captcha can't be verified anymore.
-func Verify(id string, digits []byte) bool {
+func Verify(id string, digits []byte, clear bool) bool {
 	if digits == nil || len(digits) == 0 {
 		return false
 	}
-	reald := globalStore.Get(id, true)
+	reald := globalStore.Get(id, clear)
 	if reald == nil {
 		return false
 	}

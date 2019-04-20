@@ -34,10 +34,15 @@ type idByTimeValue struct {
 	id        string
 }
 
+type digitsInfo struct {
+	digits []byte
+	retain int			//允许多次Set
+}
+
 // memoryStore is an internal store for captcha ids and their values.
 type memoryStore struct {
 	sync.RWMutex
-	digitsById map[string][]byte
+	digitsById map[string]*digitsInfo
 	idByTime   *list.List
 	// Number of items stored since last collection.
 	numStored int
@@ -52,7 +57,7 @@ type memoryStore struct {
 // store must be registered with SetCustomStore to replace the default one.
 func NewMemoryStore(collectNum int, expiration time.Duration) Store {
 	s := new(memoryStore)
-	s.digitsById = make(map[string][]byte)
+	s.digitsById = make(map[string]*digitsInfo)
 	s.idByTime = list.New()
 	s.collectNum = collectNum
 	s.expiration = expiration
@@ -61,7 +66,17 @@ func NewMemoryStore(collectNum int, expiration time.Duration) Store {
 
 func (s *memoryStore) Set(id string, digits []byte) {
 	s.Lock()
-	s.digitsById[id] = digits
+
+	if s.digitsById[id] != nil {
+		s.digitsById[id].digits = digits
+		s.digitsById[id].retain++
+	} else {
+		s.digitsById[id] = &digitsInfo{
+			digits: digits,
+			retain: 1,
+		}
+	}
+
 	s.idByTime.PushBack(idByTimeValue{time.Now(), id})
 	s.numStored++
 	if s.numStored <= s.collectNum {
@@ -72,7 +87,7 @@ func (s *memoryStore) Set(id string, digits []byte) {
 	go s.collect()
 }
 
-func (s *memoryStore) Get(id string, clear bool) (digits []byte) {
+func (s *memoryStore) Get(id string, clear bool) ([]byte) {
 	if !clear {
 		// When we don't need to clear captcha, acquire read lock.
 		s.RLock()
@@ -81,18 +96,19 @@ func (s *memoryStore) Get(id string, clear bool) (digits []byte) {
 		s.Lock()
 		defer s.Unlock()
 	}
-	digits, ok := s.digitsById[id]
+	digitsInfo, ok := s.digitsById[id]
 	if !ok {
-		return
+		return nil
 	}
 	if clear {
+		//这边不管有多少retain都delete 掉
 		delete(s.digitsById, id)
 		// XXX(dchest) Index (s.idByTime) will be cleaned when
 		// collecting expired captchas.  Can't clean it here, because
 		// we don't store reference to expValue in the map.
 		// Maybe store it?
 	}
-	return
+	return digitsInfo.digits
 }
 
 func (s *memoryStore) collect() {
@@ -106,7 +122,12 @@ func (s *memoryStore) collect() {
 			return
 		}
 		if ev.timestamp.Add(s.expiration).Before(now) {
-			delete(s.digitsById, ev.id)
+			if s.digitsById[ev.id] != nil {
+				s.digitsById[ev.id].retain--
+				if s.digitsById[ev.id].retain == 0 {
+					delete(s.digitsById, ev.id)
+				}
+			}
 			next := e.Next()
 			s.idByTime.Remove(e)
 			e = next
