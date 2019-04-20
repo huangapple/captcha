@@ -43,7 +43,7 @@ func Server(imgWidth, imgHeight int) http.Handler {
 	return &captchaHandler{imgWidth, imgHeight}
 }
 
-func (h *captchaHandler) Serve(w http.ResponseWriter, r *http.Request, id, ext, lang string, download bool) error {
+func Handler(w http.ResponseWriter, r *http.Request, id, ext, lang string, download bool, imgWidth, imgHeight int) error {
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -52,7 +52,7 @@ func (h *captchaHandler) Serve(w http.ResponseWriter, r *http.Request, id, ext, 
 	switch ext {
 	case ".png":
 		w.Header().Set("Content-Type", "image/png")
-		WriteImage(&content, id, h.imgWidth, h.imgHeight)
+		WriteImage(&content, id, imgWidth, imgHeight)
 	case ".wav":
 		w.Header().Set("Content-Type", "audio/x-wav")
 		WriteAudio(&content, id, lang)
@@ -65,6 +65,10 @@ func (h *captchaHandler) Serve(w http.ResponseWriter, r *http.Request, id, ext, 
 	}
 	http.ServeContent(w, r, id+ext, time.Time{}, bytes.NewReader(content.Bytes()))
 	return nil
+}
+
+func (h *captchaHandler) serve(w http.ResponseWriter, r *http.Request, id, ext, lang string, download bool) error {
+	return Handler(w, r, id, ext, lang, download, h.imgWidth, h.imgHeight)
 }
 
 func (h *captchaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -80,7 +84,7 @@ func (h *captchaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	lang := strings.ToLower(r.FormValue("lang"))
 	download := path.Base(dir) == "download"
-	if h.Serve(w, r, id, ext, lang, download) == ErrNotFound {
+	if h.serve(w, r, id, ext, lang, download) == ErrNotFound {
 		http.NotFound(w, r)
 	}
 	// Ignore other errors.
