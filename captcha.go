@@ -159,7 +159,7 @@ func Verify(id string, digits []byte, clear bool) bool {
 // VerifyString is like Verify, but accepts a string of digits.  It removes
 // spaces and commas from the string, but any other characters, apart from
 // digits and listed above, will cause the function to return false.
-func VerifyString(id string, digits string) bool {
+func VerifyString(id string, digits string, clear bool) bool {
 	if digits == "" {
 		return false
 	}
@@ -175,5 +175,5 @@ func VerifyString(id string, digits string) bool {
 			return false
 		}
 	}
-	return Verify(id, ns)
+	return Verify(id, ns, clear)
 }
