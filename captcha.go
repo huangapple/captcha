@@ -96,10 +96,9 @@ func LoadID(id string) {
 	globalStore.Set(id, RandomDigits(DefaultLen))
 }
 
-func HasID(id string) bool {
-	old := globalStore.Get(id, false)
+func GetID(id string) []byte {
+	return globalStore.Get(id, false)
 
-	return old != nil
 }
 
 // Reload generates and remembers new digits for the given captcha id.  This
