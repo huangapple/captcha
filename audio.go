@@ -30,26 +30,26 @@ type Audio struct {
 // are no sounds for the given language, English is used.
 //
 // Possible values for lang are "en", "ja", "ru", "zh".
-func NewAudio(id string, digits []byte, lang string) *Audio {
+func NewAudio(id string, digitsString string, lang string) *Audio {
 	a := new(Audio)
 
 	// Initialize PRNG.
-	a.rng.Seed(deriveSeed(audioSeedPurpose, id, digits))
+	a.rng.Seed(deriveSeed(audioSeedPurpose, id, digitsString))
 
 	if sounds, ok := digitSounds[lang]; ok {
 		a.digitSounds = sounds
 	} else {
 		a.digitSounds = digitSounds["en"]
 	}
-	numsnd := make([][]byte, len(digits))
+	numsnd := make([][]byte, len(digitsString))
 	nsdur := 0
-	for i, n := range digits {
-		snd := a.randomizedDigitSound(n)
+	for i, n := range digitsString {
+		snd := a.randomizedDigitSound(byte(n-'0'))
 		nsdur += len(snd)
 		numsnd[i] = snd
 	}
 	// Random intervals between digits (including beginning).
-	intervals := make([]int, len(digits)+1)
+	intervals := make([]int, len(digitsString)+1)
 	intdur := 0
 	for i := range intervals {
 		dur := a.rng.Int(sampleRate, sampleRate*3) // 1 to 3 seconds
@@ -57,7 +57,7 @@ func NewAudio(id string, digits []byte, lang string) *Audio {
 		intervals[i] = dur
 	}
 	// Generate background sound.
-	bg := a.makeBackgroundSound(a.longestDigitSndLen()*len(digits) + intdur)
+	bg := a.makeBackgroundSound(a.longestDigitSndLen()*len(digitsString) + intdur)
 	// Create buffer and write audio to it.
 	sil := makeSilence(sampleRate / 5)
 	bufcap := 3*len(beepSound) + 2*len(sil) + len(bg) + len(endingBeepSound)

@@ -18,12 +18,12 @@ func TestNew(t *testing.T) {
 
 func TestVerify(t *testing.T) {
 	id := New()
-	if Verify(id, []byte{0, 0}) {
+	if Verify(id, "00", true) {
 		t.Errorf("verified wrong captcha")
 	}
 	id = New()
 	d := globalStore.Get(id, false) // cheating
-	if !Verify(id, d) {
+	if !Verify(id, d, true) {
 		t.Errorf("proper captcha not verified")
 	}
 }
@@ -31,9 +31,9 @@ func TestVerify(t *testing.T) {
 func TestReload(t *testing.T) {
 	id := New()
 	d1 := globalStore.Get(id, false) // cheating
-	Reload(id)
+	Reload(id, Expiration)
 	d2 := globalStore.Get(id, false) // cheating again
-	if bytes.Equal(d1, d2) {
+	if d1 == d2 {
 		t.Errorf("reload didn't work: %v = %v", d1, d2)
 	}
 }

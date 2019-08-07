@@ -11,7 +11,7 @@ import (
 
 func BenchmarkNewAudio(b *testing.B) {
 	b.StopTimer()
-	d := RandomDigits(DefaultLen)
+	d := RandomDigitsString(DefaultLen)
 	id := randomId()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
@@ -21,7 +21,7 @@ func BenchmarkNewAudio(b *testing.B) {
 
 func BenchmarkAudioWriteTo(b *testing.B) {
 	b.StopTimer()
-	d := RandomDigits(DefaultLen)
+	d := RandomDigitsString(DefaultLen)
 	id := randomId()
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {

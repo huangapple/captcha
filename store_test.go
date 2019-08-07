@@ -5,32 +5,32 @@
 package captcha
 
 import (
-	"bytes"
 	"testing"
+	"time"
 )
 
 func TestSetGet(t *testing.T) {
-	s := NewMemoryStore(CollectNum, Expiration)
+	s := NewMemoryStore(0)
 	id := "captcha id"
-	d := RandomDigits(10)
-	s.Set(id, d)
+	d := RandomDigitsString(10)
+	s.Set(id, d, Expiration)
 	d2 := s.Get(id, false)
-	if d2 == nil || !bytes.Equal(d, d2) {
+	if d != d2 {
 		t.Errorf("saved %v, getDigits returned got %v", d, d2)
 	}
 }
 
 func TestGetClear(t *testing.T) {
-	s := NewMemoryStore(CollectNum, Expiration)
+	s := NewMemoryStore(0)
 	id := "captcha id"
-	d := RandomDigits(10)
-	s.Set(id, d)
+	d := RandomDigitsString(10)
+	s.Set(id, d, Expiration)
 	d2 := s.Get(id, true)
-	if d2 == nil || !bytes.Equal(d, d2) {
+	if d != d2 {
 		t.Errorf("saved %v, getDigitsClear returned got %v", d, d2)
 	}
 	d2 = s.Get(id, false)
-	if d2 != nil {
+	if d2 != "" {
 		t.Errorf("getDigitClear didn't clear (%q=%v)", id, d2)
 	}
 }
@@ -38,20 +38,22 @@ func TestGetClear(t *testing.T) {
 func TestCollect(t *testing.T) {
 	//TODO(dchest): can't test automatic collection when saving, because
 	//it's currently launched in a different goroutine.
-	s := NewMemoryStore(10, -1)
+	s := NewMemoryStore(0)
 	// create 10 ids
 	ids := make([]string, 10)
-	d := RandomDigits(10)
+	d := RandomDigitsString(10)
 	for i := range ids {
 		ids[i] = randomId()
-		s.Set(ids[i], d)
+		s.Set(ids[i], d, time.Second)
 	}
-	s.(*memoryStore).collect()
+
+	time.Sleep(time.Second * 2)
+
 	// Must be already collected
 	nc := 0
 	for i := range ids {
 		d2 := s.Get(ids[i], false)
-		if d2 != nil {
+		if d2 != "" {
 			t.Errorf("%d: not collected", i)
 			nc++
 		}
@@ -63,8 +65,8 @@ func TestCollect(t *testing.T) {
 
 func BenchmarkSetCollect(b *testing.B) {
 	b.StopTimer()
-	d := RandomDigits(10)
-	s := NewMemoryStore(9999, -1)
+	d := RandomDigitsString(10)
+	s := NewMemoryStore(0)
 	ids := make([]string, 1000)
 	for i := range ids {
 		ids[i] = randomId()
@@ -72,7 +74,7 @@ func BenchmarkSetCollect(b *testing.B) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < 1000; j++ {
-			s.Set(ids[j], d)
+			s.Set(ids[j], d, Expiration)
 		}
 		s.(*memoryStore).collect()
 	}

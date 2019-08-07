@@ -33,16 +33,16 @@ type Image struct {
 
 // NewImage returns a new captcha image of the given width and height with the
 // given digits, where each digit must be in range 0-9.
-func NewImage(id string, digits []byte, width, height int) *Image {
+func NewImage(id string, digitsString string, width, height int) *Image {
 	m := new(Image)
 
 	// Initialize PRNG.
-	m.rng.Seed(deriveSeed(imageSeedPurpose, id, digits))
+	m.rng.Seed(deriveSeed(imageSeedPurpose, id, digitsString))
 
 	m.Paletted = image.NewPaletted(image.Rect(0, 0, width, height), m.getRandomPalette())
-	m.calculateSizes(width, height, len(digits))
+	m.calculateSizes(width, height, len(digitsString))
 	// Randomly position captcha inside the image.
-	maxx := width - (m.numWidth+m.dotSize)*len(digits) - m.dotSize
+	maxx := width - (m.numWidth+m.dotSize)*len(digitsString) - m.dotSize
 	maxy := height - m.numHeight - m.dotSize*2
 	var border int
 	if width > height {
@@ -53,8 +53,8 @@ func NewImage(id string, digits []byte, width, height int) *Image {
 	x := m.rng.Int(border, maxx-border)
 	y := m.rng.Int(border, maxy-border)
 	// Draw digits.
-	for _, n := range digits {
-		m.drawDigit(font[n], x, y)
+	for _, n := range digitsString {
+		m.drawDigit(font[n-'0'], x, y)
 		x += m.numWidth + m.dotSize
 	}
 	// Draw strike-through line.

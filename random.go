@@ -41,12 +41,18 @@ const (
 //
 //   out = HMAC(rngKey, purpose || id || 0x00 || digits)  (cut to 16 bytes)
 //
-func deriveSeed(purpose byte, id string, digits []byte) (out [16]byte) {
+func deriveSeed(purpose byte, id string, digitsString string) (out [16]byte) {
 	var buf [sha256.Size]byte
 	h := hmac.New(sha256.New, rngKey[:])
 	h.Write([]byte{purpose})
 	io.WriteString(h, id)
 	h.Write([]byte{0})
+
+	digits := make([]byte, 0, len(digitsString))
+	for _, n := range digitsString {
+		digits = append(digits, byte(n-'0'))
+	}
+
 	h.Write(digits)
 	sum := h.Sum(buf[:0])
 	copy(out[:], sum)
@@ -58,6 +64,22 @@ func deriveSeed(purpose byte, id string, digits []byte) (out [16]byte) {
 // solution.
 func RandomDigits(length int) []byte {
 	return randomBytesMod(length, 10)
+}
+
+func RandomDigitsString(length int) string {
+
+	digits := randomBytesMod(length, 10)
+
+	if digits == nil {
+		return ""
+	}
+	digitsString := ""
+
+	for _, n := range digits {
+		digitsString += string('0' + n)
+	}
+
+	return digitsString
 }
 
 // randomBytes returns a byte slice of the given length read from CSPRNG.
