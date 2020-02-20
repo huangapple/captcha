@@ -41,7 +41,7 @@ func main() {
 	}
 	defer f.Close()
 	var w io.WriterTo
-	d := captcha.RandomDigits(*flagLen)
+	d := captcha.RandomDigitsString(*flagLen)
 	switch {
 	case *flagAudio:
 		w = captcha.NewAudio("", d, *flagLang)

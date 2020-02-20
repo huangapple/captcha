@@ -57,6 +57,9 @@ const (
 
 	// Expiration time of captchas used by default store.
 	Expiration = 10 * time.Minute
+
+	//默认剩余
+	DefaultLeftTimes = 3
 )
 
 var (
@@ -71,7 +74,6 @@ func SetCustomStore(s Store) {
 	globalStore = s
 }
 
-
 //New creates a new captcha with the standard length, saves it in the internal
 //storage and returns its id.
 func New() string {
@@ -82,20 +84,21 @@ func New() string {
 // argument.
 func NewLen(length int) (id string) {
 	id = randomId()
-	globalStore.Set(id, RandomDigitsString(length), Expiration)
+	globalStore.Set(id, RandomDigitsString(length), Expiration, DefaultLeftTimes)
 	return
 }
 
 func NewID() (id string) {
 	return randomId()
 }
+
 //
 //func LoadID(id string) {
 //	globalStore.Set(id, RandomDigitsString(DefaultLen), Expiration)
 //}
 
-func SetID(id string, digits string, afterExpire time.Duration) {
-	globalStore.Set(id, digits, afterExpire)
+func SetID(id string, digits string, afterExpire time.Duration, leftTimes int) {
+	globalStore.Set(id, digits, afterExpire, leftTimes)
 }
 
 func GetID(id string) string {
@@ -108,12 +111,12 @@ func GetID(id string) string {
 // After calling this function, the image or audio presented to a user must be
 // refreshed to show the new captcha representation (WriteImage and WriteAudio
 // will write the new one).
-func Reload(id string, afterExpire time.Duration) bool {
+func Reload(id string, afterExpire time.Duration, leftTimes int) bool {
 	old := globalStore.Get(id, false)
 	if old == "" {
 		return false
 	}
-	globalStore.Set(id, RandomDigitsString(len(old)), afterExpire)
+	globalStore.Set(id, RandomDigitsString(len(old)), afterExpire, leftTimes)
 	return true
 }
 
@@ -140,18 +143,10 @@ func WriteAudio(w io.Writer, id string, lang string) error {
 	return err
 }
 
-// Verify returns true if the given digits are the ones that were used to
-// create the given captcha id.
-//
-// The function deletes the captcha with the given id from the internal
-// storage, so that the same captcha can't be verified anymore.
-func Verify(id string, digitsString string, clear bool) bool {
+//验证， 返回ok返回true,如果true则清存缓存， 如果不是则剩余次数-1， 当剩余为0则删除掉
+func Verify(id string, digitsString string) bool {
 	if digitsString == "" || len(digitsString) == 0 {
 		return false
 	}
-	reald := globalStore.Get(id, clear)
-	if reald == "" {
-		return false
-	}
-	return digitsString == reald
+	return globalStore.Verify(id, digitsString)
 }

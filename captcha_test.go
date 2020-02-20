@@ -18,12 +18,12 @@ func TestNew(t *testing.T) {
 
 func TestVerify(t *testing.T) {
 	id := New()
-	if Verify(id, "00", true) {
+	if Verify(id, "00") {
 		t.Errorf("verified wrong captcha")
 	}
 	id = New()
 	d := globalStore.Get(id, false) // cheating
-	if !Verify(id, d, true) {
+	if !Verify(id, d) {
 		t.Errorf("proper captcha not verified")
 	}
 }
@@ -31,7 +31,7 @@ func TestVerify(t *testing.T) {
 func TestReload(t *testing.T) {
 	id := New()
 	d1 := globalStore.Get(id, false) // cheating
-	Reload(id, Expiration)
+	Reload(id, Expiration, DefaultLeftTimes)
 	d2 := globalStore.Get(id, false) // cheating again
 	if d1 == d2 {
 		t.Errorf("reload didn't work: %v = %v", d1, d2)
@@ -48,5 +48,62 @@ func TestRandomDigits(t *testing.T) {
 	d2 := RandomDigits(10)
 	if bytes.Equal(d1, d2) {
 		t.Errorf("digits seem to be not random")
+	}
+}
+
+func TestLeftTimes(t *testing.T) {
+
+	captcha := RandomDigitsString(6)
+	id := NewID()
+
+	SetID(id, captcha, Expiration, DefaultLeftTimes)
+
+	for i := 0; i < DefaultLeftTimes; i++ {
+		if Verify(id, captcha+"1111") {
+			t.Errorf("TestLeftTimes error")
+		}
+	}
+	if Verify(id, captcha) {
+		t.Errorf("TestLeftTimes error")
+	}
+}
+
+func TestLeftTimes2(t *testing.T) {
+
+	captcha := RandomDigitsString(6)
+	id := NewID()
+
+	SetID(id, captcha, Expiration, DefaultLeftTimes)
+
+	for i := 0; i < DefaultLeftTimes-1; i++ {
+		if Verify(id, captcha+"1111") {
+			t.Errorf("TestLeftTimes error")
+		}
+	}
+	if !Verify(id, captcha) {
+		t.Errorf("TestLeftTimes error")
+	}
+	if Verify(id, captcha) {
+		t.Errorf("TestLeftTimes error")
+	}
+}
+
+func TestLeftTimes3(t *testing.T) {
+
+	captcha := RandomDigitsString(6)
+	id := NewID()
+
+	SetID(id, captcha, Expiration, DefaultLeftTimes)
+
+	for i := 0; i < DefaultLeftTimes-2; i++ {
+		if Verify(id, captcha+"1111") {
+			t.Errorf("TestLeftTimes error")
+		}
+	}
+	if !Verify(id, captcha) {
+		t.Errorf("TestLeftTimes error")
+	}
+	if Verify(id, captcha) {
+		t.Errorf("TestLeftTimes error")
 	}
 }

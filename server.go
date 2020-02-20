@@ -80,7 +80,7 @@ func (h *captchaHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.FormValue("reload") != "" {
-		Reload(id, Expiration)
+		Reload(id, Expiration, DefaultLeftTimes)
 	}
 	lang := strings.ToLower(r.FormValue("lang"))
 	download := path.Base(dir) == "download"

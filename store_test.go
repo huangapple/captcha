@@ -13,7 +13,7 @@ func TestSetGet(t *testing.T) {
 	s := NewMemoryStore(0)
 	id := "captcha id"
 	d := RandomDigitsString(10)
-	s.Set(id, d, Expiration)
+	s.Set(id, d, Expiration, DefaultLeftTimes)
 	d2 := s.Get(id, false)
 	if d != d2 {
 		t.Errorf("saved %v, getDigits returned got %v", d, d2)
@@ -24,7 +24,7 @@ func TestGetClear(t *testing.T) {
 	s := NewMemoryStore(0)
 	id := "captcha id"
 	d := RandomDigitsString(10)
-	s.Set(id, d, Expiration)
+	s.Set(id, d, Expiration, DefaultLeftTimes)
 	d2 := s.Get(id, true)
 	if d != d2 {
 		t.Errorf("saved %v, getDigitsClear returned got %v", d, d2)
@@ -44,7 +44,7 @@ func TestCollect(t *testing.T) {
 	d := RandomDigitsString(10)
 	for i := range ids {
 		ids[i] = randomId()
-		s.Set(ids[i], d, time.Second)
+		s.Set(ids[i], d, time.Second, DefaultLeftTimes)
 	}
 
 	time.Sleep(time.Second * 2)
@@ -74,7 +74,7 @@ func BenchmarkSetCollect(b *testing.B) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		for j := 0; j < 1000; j++ {
-			s.Set(ids[j], d, Expiration)
+			s.Set(ids[j], d, Expiration, DefaultLeftTimes)
 		}
 		s.(*memoryStore).collect()
 	}

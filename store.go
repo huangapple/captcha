@@ -18,16 +18,20 @@ import (
 // method after the certain amount of captchas has been stored.)
 type Store interface {
 	// Set sets the digits for the captcha id.
-	Set(id string, captcha string, afterExpire time.Duration)
+	Set(id string, captcha string, afterExpire time.Duration, leftTimes int)
 
 	// Get returns stored digits for the captcha id. Clear indicates
 	// whether the captcha must be deleted from the store.
 	Get(id string, clear bool) string
+
+	//验证， 返回ok返回true,如果true则清存缓存， 如果不是则剩余次数-1， 当剩余为0则删除掉
+	Verify(id string, captcha string) bool
 }
 
 type captchaInfo struct {
-	captcha    string
-	expireTime time.Time //过期时间
+	captcha         string
+	expireTime      time.Time //过期时间
+	leftVerifyTimes int       //剩余验证次数
 }
 
 // memoryStore is an internal store for captcha ids and their values.
@@ -65,11 +69,16 @@ func NewMemoryStore(interval time.Duration) Store {
 	return s
 }
 
-func (s *memoryStore) Set(id string, captcha string, afterExpire time.Duration) {
+func (s *memoryStore) Set(id string, captcha string, afterExpire time.Duration, leftTimes int) {
+
+	if leftTimes == 0 {
+		leftTimes = DefaultLeftTimes
+	}
 
 	s.captchaMap.Store(id, &captchaInfo{
-		captcha:    captcha,
-		expireTime: time.Now().Add(afterExpire),
+		captcha:         captcha,
+		expireTime:      time.Now().Add(afterExpire),
+		leftVerifyTimes: leftTimes,
 	})
 
 }
@@ -95,6 +104,25 @@ func (s *memoryStore) Get(id string, clear bool) string {
 
 	}
 	return ""
+}
+
+func (s *memoryStore) Verify(id string, captcha string) bool {
+
+	info, ok := s.captchaMap.Load(id)
+
+	if ok {
+		info := info.(*captchaInfo)
+		info.leftVerifyTimes--
+
+		if info.leftVerifyTimes <= 0 {
+			s.captchaMap.Delete(id)
+		}
+		if info.captcha == captcha {
+			s.captchaMap.Delete(id)
+			return true
+		}
+	}
+	return false
 }
 
 func (s *memoryStore) collect() {
